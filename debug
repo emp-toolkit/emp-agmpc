@@ -1,0 +1,6 @@
+#!/bin/bash
+$1 1 12345 & $1 2 12345 & valgrind --leak-check=full $1 3 12345
+#valgrind --leak-check=full $1 1 12345 & $1 2 12345 & $1 3 12345
+#$1 1 12345 & $1 2 12345 & perf record $1 3 12345
+#perf record -g $1 1 12345 & $1 2 12345 & $1 3 12345
+#valgrind --leak-check=full $1 1 12345 & $1 2 12345 & $1 3 12345

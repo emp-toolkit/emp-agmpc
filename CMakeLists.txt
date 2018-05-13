@@ -1,0 +1,36 @@
+cmake_minimum_required (VERSION 2.8.11)
+project (emp-cmpc)
+
+if(POLICY CMP0042)
+  cmake_policy(SET CMP0042 NEW) # use rpath on macOS
+endif()
+include_directories(${CMAKE_SOURCE_DIR})
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} cmake/)
+macro (add_test _name)
+	add_executable("${_name}" "test/${_name}.cpp" ${basics})
+	target_link_libraries("${_name}" ${EMP-OT_LIBRARIES})
+endmacro()
+if(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE Release)
+endif(NOT CMAKE_BUILD_TYPE)
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+set (CMAKE_C_FLAGS "-pthread -Wall -march=native -O3 -maes -mrdseed -mavx2")
+set (CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+
+OPTION(USE_RANDOM_DEVICE "Option description" OFF)
+IF(USE_RANDOM_DEVICE)
+     ADD_DEFINITIONS(-DEMP_USE_RANDOM_DEVICE)
+ENDIF(USE_RANDOM_DEVICE)
+
+FIND_PACKAGE(emp-ot REQUIRED)
+INCLUDE_DIRECTORIES(${EMP-OT_INCLUDE_DIRS})
+FIND_PACKAGE(emp-sh2pc)
+INCLUDE_DIRECTORIES(${EMP-SH2PC_INCLUDE_DIRS})
+
+add_test (test_mpc)
+add_test (bench_mpc)
