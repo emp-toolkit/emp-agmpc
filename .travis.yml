@@ -1,0 +1,69 @@
+language: cpp
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6
+      env:
+        - TYPE=Debug
+        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+
+    - os: linux
+      dist: trusty
+      sudo: required
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-6
+      env:
+        - TYPE=Release
+        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+
+      
+    - os: linux
+      dist: trusty
+      sudo: required
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - clang-4.0
+      env:
+        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+        - TYPE=Release
+
+    - os: linux
+      dist: trusty
+      sudo: required
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - clang-4.0
+      env:
+        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+        - TYPE=Debug
+
+before_install:
+  - eval "${MATRIX_EVAL}"
+  - git clone https://github.com/emp-toolkit/emp-readme.git
+  - bash ./emp-readme/scripts/install_packages.sh
+  - bash ./emp-readme/scripts/install_relic.sh
+  - bash ./emp-readme/scripts/install_emp-tool.sh
+  - bash ./emp-readme/scripts/install_emp-ot.sh
+
+script:
+  - cat /proc/cpuinfo
+  - cmake -DCMAKE_BUILD_TYPE=$TYPE . && make
+  - ./run ./bin/bench_mpc 12345
