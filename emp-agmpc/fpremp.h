@@ -161,7 +161,7 @@ class FpreMP { public:
 				for(int k = 0; k < length*bucket_size; ++k) {
 					io->recv_data(party2, &bH, sizeof(block));
 					tMACphi[party2][k] = prps2[party2].H(tMAC[party2][3*k], 2*k+tr[3*k]);
-					if(tr[3*k])tMACphi[party2][k] = xorBlocks(tMACphi[party2][k], H);
+					if(tr[3*k])tMACphi[party2][k] = xorBlocks(tMACphi[party2][k], bH);
 				}
 			}));
 		}
