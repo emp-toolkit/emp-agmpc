@@ -144,22 +144,22 @@ class FpreMP { public:
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 			int party2 = i + j - party;
 			res.push_back(pool->enqueue([this, tKEY, tKEYphi, phi, length, bucket_size, party2]() {
-				block H[2];
+				block bH[2];
 				for(int k = 0; k < length*bucket_size; ++k) {
-					H[0] = tKEY[party2][3*k];
-					H[1] = xorBlocks(H[0], Delta);
-					prps[party2].H<2>(H, H, 2*k);
-					tKEYphi[party2][k] = H[0];
-					H[1] = xorBlocks(H[0], H[1]);
-					H[1] = xorBlocks(phi[k], H[1]);
-					io->send_data(party2, &H[1], sizeof(block));
+					bH[0] = tKEY[party2][3*k];
+					bH[1] = xorBlocks(bH[0], Delta);
+					prps[party2].H<2>(bH, bH, 2*k);
+					tKEYphi[party2][k] = bH[0];
+					bH[1] = xorBlocks(bH[0], bH[1]);
+					bH[1] = xorBlocks(phi[k], bH[1]);
+					io->send_data(party2, &bH[1], sizeof(block));
 				}
 				io->flush(party2);
 			}));
 			res.push_back(pool->enqueue([this, tMAC, tMACphi, tr, length, bucket_size, party2]() {
-				block H;
+				block bH;
 				for(int k = 0; k < length*bucket_size; ++k) {
-					io->recv_data(party2, &H, sizeof(block));
+					io->recv_data(party2, &bH, sizeof(block));
 					tMACphi[party2][k] = prps2[party2].H(tMAC[party2][3*k], 2*k+tr[3*k]);
 					if(tr[3*k])tMACphi[party2][k] = xorBlocks(tMACphi[party2][k], H);
 				}
@@ -352,8 +352,8 @@ class FpreMP { public:
 		return data;
 	}
 	bool evaluate(uint8_t tmp, block * MAC, bool * r, int i, int I) {
-		block H = xorBlocks(prps[I].H(MAC[3*i], 4*i + r[3*i]), prps[I].H(MAC[3*i+1], 4*i + 2 + r[3*i+1]));
-		uint8_t res = LSB(H);
+		block bH = xorBlocks(prps[I].H(MAC[3*i], 4*i + r[3*i]), prps[I].H(MAC[3*i+1], 4*i + 2 + r[3*i+1]));
+		uint8_t res = LSB(bH);
 		tmp >>= (r[3*i+1]*2+r[3*i]);
 		return (tmp&0x1) != (res&0x1);
 	}	
