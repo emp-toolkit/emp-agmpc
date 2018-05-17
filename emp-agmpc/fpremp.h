@@ -144,11 +144,11 @@ class FpreMP { public:
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 			int party2 = i + j - party;
 			res.push_back(pool->enqueue([this, tKEY, tKEYphi, phi, length, bucket_size, party2]() {
-				block bH[2];
+				block bH[2], tmpH[2];
 				for(int k = 0; k < length*bucket_size; ++k) {
 					bH[0] = tKEY[party2][3*k];
 					bH[1] = xorBlocks(bH[0], Delta);
-					(prps[party2]).H<2>(bH, bH, 2*k);
+					prps[party2].Hn(bH, bH, 2*k, 2, tmpH);
 					tKEYphi[party2][k] = bH[0];
 					bH[1] = xorBlocks(bH[0], bH[1]);
 					bH[1] = xorBlocks(phi[k], bH[1]);
@@ -325,12 +325,12 @@ class FpreMP { public:
 	//TODO: change to justGarble
 	uint8_t garble(block * KEY, bool * r, bool * r2, int i, int I) {
 		uint8_t data = 0;
-		block tmp[4], tmp2[4];
+		block tmp[4], tmp2[4], tmpH[4];
 		tmp[0] = KEY[3*i];
 		tmp[1] = xorBlocks(tmp[0], Delta);
 		tmp[2] = KEY[3*i+1];
 		tmp[3] = xorBlocks(tmp[2], Delta);
-		prps[I].H<4>(tmp, tmp, 4*i);
+		prps[I].Hn(tmp, tmp, 4*i, 4, tmpH);
 
 		tmp2[0] = xorBlocks(tmp[0], tmp[2]);
 		tmp2[1] = xorBlocks(tmp[1], tmp[2]);
