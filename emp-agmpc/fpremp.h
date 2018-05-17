@@ -148,7 +148,7 @@ class FpreMP { public:
 				for(int k = 0; k < length*bucket_size; ++k) {
 					bH[0] = tKEY[party2][3*k];
 					bH[1] = xorBlocks(bH[0], Delta);
-					prps[party2].H<2>(bH, bH, 2*k);
+					(prps[party2]).H<2>(bH, bH, 2*k);
 					tKEYphi[party2][k] = bH[0];
 					bH[1] = xorBlocks(bH[0], bH[1]);
 					bH[1] = xorBlocks(phi[k], bH[1]);
