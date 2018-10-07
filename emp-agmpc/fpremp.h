@@ -191,7 +191,7 @@ class FpreMP { public:
 #endif
 
 		PRG prgf(fix_key);
-		char (*dgst)[20] = new char[nP+1][20];
+		char (*dgst)[Hash::DIGEST_SIZE] = new char[nP+1][Hash::DIGEST_SIZE];
 		bool * tmp = new bool[length*bucket_size];
 		for(int i = 0; i < ssp; ++i) {
 			prgf.random_bool(tmp, length*bucket_size);
@@ -202,8 +202,8 @@ class FpreMP { public:
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 			int party2 = i + j - party;
 			res.push_back(pool->enqueue([this, dgst, party2]() {
-				io->send_data(party2, dgst[party], 20);
-				io->recv_data(party2, dgst[party2], 20);
+				io->send_data(party2, dgst[party], Hash::DIGEST_SIZE);
+				io->recv_data(party2, dgst[party2], Hash::DIGEST_SIZE);
 			}));
 		}
 		joinNclean(res);
@@ -214,9 +214,9 @@ class FpreMP { public:
 			res2.push_back(pool->enqueue([this, X, dgst, party2]() -> bool {
 				io->send_data(party2, X[party], sizeof(block)*ssp);
 				io->recv_data(party2, X[party2], sizeof(block)*ssp);
-				char tmp[20];
+				char tmp[Hash::DIGEST_SIZE];
 				Hash::hash_once(tmp, X[party2], sizeof(block)*ssp);
-				return strncmp(tmp, dgst[party2], 20)!=0;
+				return strncmp(tmp, dgst[party2], Hash::DIGEST_SIZE)!=0;
 			}));
 		}
 		if(joinNcleanCheat(res2)) error("commitment");
