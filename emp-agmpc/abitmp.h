@@ -207,9 +207,9 @@ class ABitMP { public:
 			for(int j = 1; j <= nP; ++j)
 				Ms[i][j] = new block[ssp];
 		}
-		char (*dgst)[20] = new char[nP+1][20];
-		char (*dgst0)[20] = new char[ssp*(nP+1)][20];
-		char (*dgst1)[20] = new char[ssp*(nP+1)][20];
+		char (*dgst)[Hash::DIGEST_SIZE] = new char[nP+1][Hash::DIGEST_SIZE];
+		char (*dgst0)[Hash::DIGEST_SIZE] = new char[ssp*(nP+1)][Hash::DIGEST_SIZE];
+		char (*dgst1)[Hash::DIGEST_SIZE] = new char[ssp*(nP+1)][Hash::DIGEST_SIZE];
 	
 		
 		for(int i = 0; i < ssp; ++i) {
@@ -232,12 +232,12 @@ class ABitMP { public:
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 			int party2 = i + j - party;
 			res.push_back(pool->enqueue([this, dgst, dgst0, dgst1, data, MAC, length, party2](){
-				io->send_data(party2, dgst[party], 20);
-				io->send_data(party2, dgst0[party*ssp], 20*ssp);
-				io->send_data(party2, dgst1[party*ssp], 20*ssp);
-				io->recv_data(party2, dgst[party2], 20);
-				io->recv_data(party2, dgst0[party2*ssp], 20*ssp);
-				io->recv_data(party2, dgst1[party2*ssp], 20*ssp);
+				io->send_data(party2, dgst[party], Hash::DIGEST_SIZE);
+				io->send_data(party2, dgst0[party*ssp], Hash::DIGEST_SIZE*ssp);
+				io->send_data(party2, dgst1[party*ssp], Hash::DIGEST_SIZE*ssp);
+				io->recv_data(party2, dgst[party2], Hash::DIGEST_SIZE);
+				io->recv_data(party2, dgst0[party2*ssp], Hash::DIGEST_SIZE*ssp);
+				io->recv_data(party2, dgst1[party2*ssp], Hash::DIGEST_SIZE*ssp);
 			}));
 		}
 		joinNclean(res);
@@ -262,8 +262,8 @@ class ABitMP { public:
 					io->recv_data(party2, Ms[party2][k], sizeof(block)*ssp);
 					h.put(Ms[party2][k], sizeof(block)*ssp);
 				}
-				char tmp[20];h.digest(tmp);
-				return strncmp(tmp, dgst[party2], 20) != 0;
+				char tmp[Hash::DIGEST_SIZE];h.digest(tmp);
+				return strncmp(tmp, dgst[party2], Hash::DIGEST_SIZE) != 0;
 			}));
 		}
 		if(joinNcleanCheat(res2)) error("commitment 1\n");
@@ -292,12 +292,12 @@ class ABitMP { public:
 				io->recv_data(party2, tmp_bool, ssp);
 				io->recv_data(party2, KK[party2], ssp*sizeof(block));
 				for(int i = 0; i < ssp; ++i) {
-					char tmp[20];
+					char tmp[Hash::DIGEST_SIZE];
 					Hash::hash_once(tmp, &KK[party2][i], sizeof(block));
 					if(tmp_bool[i])
-						cheat = cheat or (strncmp(tmp, dgst1[party2*ssp+i], 20)!=0);
+						cheat = cheat or (strncmp(tmp, dgst1[party2*ssp+i], Hash::DIGEST_SIZE)!=0);
 					else
-						cheat = cheat or (strncmp(tmp, dgst0[party2*ssp+i], 20)!=0);
+						cheat = cheat or (strncmp(tmp, dgst0[party2*ssp+i], Hash::DIGEST_SIZE)!=0);
 				}
 				delete[] tmp_bool;
 				return cheat;

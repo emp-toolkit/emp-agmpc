@@ -110,7 +110,7 @@ template<int nP>
 block sampleRandom(NetIOMP<nP> * io, PRG * prg, ThreadPool * pool, int party) {
 	vector<future<void>> res;
 	vector<future<bool>> res2;
-	char (*dgst)[20] = new char[nP+1][20];
+	char (*dgst)[Hash::DIGEST_SIZE] = new char[nP+1][Hash::DIGEST_SIZE];
 	block *S = new block[nP+1];
 	prg->random_block(&S[party], 1);
 	Hash::hash_once(dgst[party], &S[party], sizeof(block));
@@ -118,8 +118,8 @@ block sampleRandom(NetIOMP<nP> * io, PRG * prg, ThreadPool * pool, int party) {
 	for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 		int party2 = i + j - party;
 		res.push_back(pool->enqueue([dgst, io, party, party2]() {
-			io->send_data(party2, dgst[party], 20);
-			io->recv_data(party2, dgst[party2], 20);
+			io->send_data(party2, dgst[party], Hash::DIGEST_SIZE);
+			io->recv_data(party2, dgst[party2], Hash::DIGEST_SIZE);
 		}));
 	}
 	joinNclean(res);
@@ -128,9 +128,9 @@ block sampleRandom(NetIOMP<nP> * io, PRG * prg, ThreadPool * pool, int party) {
 		res2.push_back(pool->enqueue([io, S, dgst, party, party2]() -> bool {
 			io->send_data(party2, &S[party], sizeof(block));
 			io->recv_data(party2, &S[party2], sizeof(block));
-			char tmp[20];
+			char tmp[Hash::DIGEST_SIZE];
 			Hash::hash_once(tmp, &S[party2], sizeof(block));
-			return strncmp(tmp, dgst[party2], 20)!=0;
+			return strncmp(tmp, dgst[party2], Hash::DIGEST_SIZE)!=0;
 		}));
 	}
 	bool cheat = joinNcleanCheat(res2);
