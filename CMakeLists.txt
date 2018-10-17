@@ -16,4 +16,5 @@ macro (add_test _name)
 endmacro()
 
 add_test (test_mpc)
+add_test (test_mpc_individual)
 add_test (bench_mpc)

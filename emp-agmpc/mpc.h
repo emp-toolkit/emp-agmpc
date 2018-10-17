@@ -469,5 +469,148 @@ ret.get();
 		if(a) return "T";
 		else return "F";
 	}
+
+	void online (bool * input, bool * output, int* start, int* end) {
+		bool * mask_input = new bool[cf->num_wire];
+		bool * input_mask[nP+1];
+		for(int i = 0; i <= nP; ++i) input_mask[i] = new bool[end[party] - start[party]];
+		memcpy(input_mask[party], value+start[party], end[party] - start[party]);
+		memcpy(input_mask[0], input+start[party], end[party] - start[party]);
+
+		vector<future<bool>> res;
+		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
+			int party2 = i + j - party;
+			res.push_back(pool->enqueue([this, start, end, mask_input, party2]() {
+				char dig[Hash::DIGEST_SIZE];
+				io->send_data(party2, value+start[party2], end[party2]-start[party2]);
+				emp::Hash::hash_once(dig, mac[party2]+start[party2], (end[party2]-start[party2])*sizeof(block));
+				io->send_data(party2, dig, Hash::DIGEST_SIZE);
+				io->flush(party2);
+				return false;
+			}));
+			res.push_back(pool->enqueue([this, start, end, input_mask, party2]() {
+				char dig[Hash::DIGEST_SIZE];
+				char dig2[Hash::DIGEST_SIZE];
+				io->recv_data(party2, input_mask[party2], end[party]-start[party]);
+				block * tmp = new block[end[party]-start[party]];
+				for(int i =  0; i < end[party] - start[party]; ++i) {
+					tmp[i] = key[party2][i+start[party]];
+					if(input_mask[party2][i])tmp[i] = xorBlocks(tmp[i], Delta);
+				}
+				emp::Hash::hash_once(dig2, tmp, (end[party]-start[party])*sizeof(block));
+				io->recv_data(party2, dig, Hash::DIGEST_SIZE);
+				delete[] tmp;
+				return strncmp(dig, dig2, Hash::DIGEST_SIZE) != 0;	
+			}));
+		}
+		if(joinNcleanCheat(res)) error("cheat!");
+		for(int i = 1; i <= nP; ++i)
+			for(int j = 0; j < end[party] - start[party]; ++j)
+				input_mask[0][j] = input_mask[0][j] != input_mask[i][j];
+
+
+		if(party != 1) {
+			io->send_data(1, input_mask[0], end[party] - start[party]);
+			io->flush(1);
+			io->recv_data(1, mask_input, num_in);
+		} else {
+			vector<future<void>> res;
+			for(int i = 2; i <= nP; ++i) {
+				int party2 = i;
+				res.push_back(pool->enqueue([this, mask_input, start, end , party2]() {
+					io->recv_data(party2, mask_input+start[party2], end[party2] - start[party2]);
+				}));
+			}
+			joinNclean(res);
+			memcpy(mask_input, input_mask[0], end[1]-start[1]);
+			for(int i = 2; i <= nP; ++i) {
+				int party2 = i;
+				res.push_back(pool->enqueue([this, mask_input, party2]() {
+					io->send_data(party2, mask_input, num_in);
+					io->flush(party2);
+				}));
+			}
+			joinNclean(res);
+		}
+	
+		if(party!= 1) {
+			for(int i = 0; i < num_in; ++i) {
+				block tmp = labels[i];
+				if(mask_input[i]) tmp = xorBlocks(tmp, Delta);
+				io->send_data(1, &tmp, sizeof(block));
+			}
+			io->flush(1);
+		} else {
+			vector<future<void>> res;
+			for(int i = 2; i <= nP; ++i) {
+				int party2 = i;
+				res.push_back(pool->enqueue([this, party2]() {
+					io->recv_data(party2, eval_labels[party2], num_in*sizeof(block));
+				}));
+			}
+			joinNclean(res);
+	
+			int ands = 0;	
+			for(int i = 0; i < cf->num_gate; ++i) {
+				if (cf->gates[4*i+3] == XOR_GATE) {
+					for(int j = 2; j<= nP; ++j)
+						eval_labels[j][cf->gates[4*i+2]] = xorBlocks(eval_labels[j][cf->gates[4*i]], eval_labels[j][cf->gates[4*i+1]]);
+					mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i]] != mask_input[cf->gates[4*i+1]];
+				} else if (cf->gates[4*i+3] == AND_GATE) {
+					int index = 2*mask_input[cf->gates[4*i]] + mask_input[cf->gates[4*i+1]];
+					block H[nP+1];
+					for(int j = 2; j <= nP; ++j)
+						eval_labels[j][cf->gates[4*i+2]] = GTM[ands][index][j];
+					mask_input[cf->gates[4*i+2]] = GTv[ands][index];
+					for(int j = 2; j <= nP; ++j) {
+						Hash(H, eval_labels[j][cf->gates[4*i]], eval_labels[j][cf->gates[4*i+1]], ands, index);
+						xorBlocks_arr(H, H, GT[ands][j][index], nP+1);
+						for(int k = 2; k <= nP; ++k)
+							eval_labels[k][cf->gates[4*i+2]] = xorBlocks(H[k], eval_labels[k][cf->gates[4*i+2]]);
+					
+						block t0 = xorBlocks(GTK[ands][index][j], Delta);
+
+						if(block_cmp(&H[1], &GTK[ands][index][j], 1))
+							mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i+2]] != false;
+						else if(block_cmp(&H[1], &t0, 1))
+							mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i+2]] != true;
+						else 	{cout <<ands <<"no match GT!"<<endl<<flush;
+						}
+					}
+					ands++;
+				} else {
+					mask_input[cf->gates[4*i+2]] = not mask_input[cf->gates[4*i]];	
+					for(int j = 2; j <= nP; ++j)
+						eval_labels[j][cf->gates[4*i+2]] = eval_labels[j][cf->gates[4*i]];
+				}
+			}
+		}
+		if(party != 1) {
+			io->send_data(1, value+cf->num_wire - cf->n3, cf->n3);
+			io->flush(1);
+		} else {
+			vector<future<void>> res;
+			bool * tmp[nP+1];
+			for(int i = 2; i <= nP; ++i) 
+				tmp[i] = new bool[cf->n3];
+			for(int i = 2; i <= nP; ++i) {
+				int party2 = i;
+				res.push_back(pool->enqueue([this, tmp, party2]() {
+					io->recv_data(party2, tmp[party2], cf->n3);
+				}));
+			}
+			joinNclean(res);
+			for(int i = 0; i < cf->n3; ++i)
+				for(int j = 2; j <= nP; ++j)
+					mask_input[cf->num_wire - cf->n3 + i] = tmp[j][i] != mask_input[cf->num_wire - cf->n3 + i];
+			for(int i = 0; i < cf->n3; ++i)
+					mask_input[cf->num_wire - cf->n3 + i] = value[cf->num_wire - cf->n3 + i] != mask_input[cf->num_wire - cf->n3 + i];
+
+			for(int i = 2; i <= nP; ++i) delete[] tmp[i];
+			memcpy(output, mask_input + cf->num_wire - cf->n3, cf->n3);
+		}
+		delete[] mask_input;
+	}
+
 };
 #endif// CMPC_H__
