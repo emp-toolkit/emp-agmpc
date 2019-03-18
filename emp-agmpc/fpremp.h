@@ -69,7 +69,7 @@ class FpreMP { public:
 			memset(s[i], 0, length*bucket_size);
 		}
 		prg.random_bool(tr, length*bucket_size*3+3*ssp);
-		memset(tr, false, length*bucket_size*3+3*ssp);
+		// memset(tr, false, length*bucket_size*3+3*ssp);
 		abit->compute(tMAC, tKEY, tr, length*bucket_size*3 + 3*ssp);
 		vector<future<void>>	 res;
 
