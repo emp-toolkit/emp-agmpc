@@ -111,7 +111,7 @@ class CMPC { public:
 
 	void function_independent() {
 		if(party != 1)
-			prg.random_block(labels, total_pre);
+			prg.random_block(labels, cf->num_wire);
 
 		fpre->compute(ANDS_mac, ANDS_key, ANDS_value, num_ands);
 
