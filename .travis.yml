@@ -33,6 +33,6 @@ before_install:
   - bash ./emp-readme/scripts/install_emp-ot.sh
 
 script:
-  - cat /proc/cpuinfo
+  - cat /proc/cpuinfo || true
   - cmake -DCMAKE_BUILD_TYPE=$TYPE . && make
   - ./run ./bin/bench_mpc 12345
