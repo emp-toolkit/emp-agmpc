@@ -21,15 +21,24 @@ block inProd(bool * b, block * blk, int length) {
 			res = xorBlocks(res, andBlocks(inProdTableBlock[b[i]],blk[i]));
 		return res;
 }
+#ifdef __GNUC__
+	#ifndef __clang__
+		#pragma GCC push_options
+		#pragma GCC optimize ("unroll-loops")
+	#endif
+#endif
 
-#pragma GCC push_options
-#pragma GCC optimize ("unroll-loops")
 template<int ssp>
 void inProdhelp(block *Ms,  bool * tmp[ssp],  block * MAC, int i) {
 	for(int j = 0; j < ssp; ++j)
 		Ms[j] = xorBlocks(Ms[j], andBlocks(inProdTableBlock[tmp[j][i]],MAC[i]));
 }
-#pragma GCC pop_options
+#ifdef __GNUC__
+	#ifndef __clang__
+		#pragma GCC pop_options
+	#endif
+#endif
+
 
 template<int ssp>
 void inProds(block *Ms,  bool * tmp[ssp], block * MAC, int length) {

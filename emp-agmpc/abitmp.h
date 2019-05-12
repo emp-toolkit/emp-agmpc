@@ -38,20 +38,20 @@ class ABitMP { public:
 		vector<future<void>> res;//relic multi-thread problems...
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j <= nP; ++j) if(i < j) {
 			if(i == party) {
-				res.push_back(pool->enqueue([this, io, tmp, i, j]() {
+				res.push_back(pool->enqueue([this, io, tmp, j]() {
 					abit1[j]->setup_send(tmp);
 					io->flush(j);
 				}));
-				res.push_back(pool->enqueue([this, io, tmp, i, j]() {
+				res.push_back(pool->enqueue([this, io, j]() {
 					abit2[j]->setup_recv();
 					io->flush(j);
 				}));
 			} else if (j == party) {
-				res.push_back(pool->enqueue([this, io, tmp, i, j]() {
+				res.push_back(pool->enqueue([this, io, i]() {
 					abit2[i]->setup_recv();
 					io->flush(i);
 				}));
-				res.push_back(pool->enqueue([this, io, tmp, i, j]() {
+				res.push_back(pool->enqueue([this, io, tmp, i]() {
 					abit1[i]->setup_send(tmp);
 					io->flush(i);
 				}));
@@ -231,7 +231,7 @@ class ABitMP { public:
 		vector<future<void>> res;
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 			int party2 = i + j - party;
-			res.push_back(pool->enqueue([this, dgst, dgst0, dgst1, data, MAC, length, party2](){
+			res.push_back(pool->enqueue([this, dgst, dgst0, dgst1, party2](){
 				io->send_data(party2, dgst[party], Hash::DIGEST_SIZE);
 				io->send_data(party2, dgst0[party*ssp], Hash::DIGEST_SIZE*ssp);
 				io->send_data(party2, dgst1[party*ssp], Hash::DIGEST_SIZE*ssp);
@@ -254,7 +254,7 @@ class ABitMP { public:
 					io->send_data(party2, MAC[k] + length - 3*ssp, sizeof(block)*ssp);
 				return false;
 			}));
-			res2.push_back(pool->enqueue([this, dgst, bs, Ms, length, party2]() -> bool {
+			res2.push_back(pool->enqueue([this, dgst, bs, Ms,  party2]() -> bool {
 				Hash h;
 				io->recv_data(party2, bs[party2], ssp);
 				h.put(bs[party2], ssp);
@@ -286,7 +286,7 @@ class ABitMP { public:
 				io->flush(party2);
 				return false;
 			}));
-			res2.push_back(pool->enqueue([this, bs, KK, dgst0, dgst1, length, party2]() -> bool {
+			res2.push_back(pool->enqueue([this, KK, dgst0, dgst1, party2]() -> bool {
 				bool cheat = false;
 				bool *tmp_bool = new bool[ssp];
 				io->recv_data(party2, tmp_bool, ssp);
