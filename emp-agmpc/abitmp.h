@@ -275,7 +275,7 @@ class ABitMP { public:
 		}
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 			int party2 = i + j - party;
-			res2.push_back(pool->enqueue([this, bs, Ks, length, party2]() -> bool {
+			res2.push_back(pool->enqueue([this, bs, Ks, party2]() -> bool {
 				io->send_data(party2, bs[party], ssp);
 				for(int i = 0; i < ssp; ++i) {
 					if(bs[party][i])

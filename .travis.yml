@@ -35,6 +35,8 @@ before_install:
 script:
   - cat /proc/cpuinfo || true
   - cmake -DCMAKE_BUILD_TYPE=$TYPE . && make
+  - ulimit -s unlimited
+  - ulimit -u unlimited
   - ./run ./bin/aes 12345
   - ./run ./bin/sha1 12345
   - ./run ./bin/sha256 12345

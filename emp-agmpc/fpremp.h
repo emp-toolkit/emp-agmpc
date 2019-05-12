@@ -75,7 +75,7 @@ class FpreMP { public:
 
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j <= nP; ++j) if (i < j ) {
 			if(i == party) {
-				res.push_back(pool->enqueue([this, tKEY, tr, s, length, bucket_size, i, j]() {
+				res.push_back(pool->enqueue([this, tKEY, tr, s, length, bucket_size, j]() {
 					prgs[j].random_bool(s[j], length*bucket_size);
 					for(int k = 0; k < length*bucket_size; ++k) {
 						uint8_t data = garble(tKEY[j], tr, s[j], k, j);
@@ -85,7 +85,7 @@ class FpreMP { public:
 					io->flush(j);
 				}));
 			} else if (j == party) {
-				res.push_back(pool->enqueue([this, tMAC, tr, s, length, bucket_size, i, j]() {
+				res.push_back(pool->enqueue([this, tMAC, tr, s, length, bucket_size, i]() {
 					for(int k = 0; k < length*bucket_size; ++k) {
 						uint8_t data = 0;
 						io->recv_data(i, &data, 1);
