@@ -17,4 +17,6 @@ endmacro()
 
 add_test (test_mpc)
 add_test (test_mpc_individual)
-add_test (bench_mpc)
+add_test (aes)
+add_test (sha1)
+add_test (sha256)

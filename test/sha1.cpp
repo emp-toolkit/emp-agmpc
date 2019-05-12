@@ -48,7 +48,6 @@ void bench_once(NetIOMP<nP> * ios[2], ThreadPool * pool, string filename) {
 	delete mpc;
 }
 int main(int argc, char** argv) {
-	int func = 0;
 	parse_party_and_port(argv, &party, &port);
 	if(party > nP)return 0;
 	NetIOMP<nP> io(party, port);
@@ -60,16 +59,6 @@ int main(int argc, char** argv) {
 	NetIOMP<nP> *ios[2] = {&io, &io2};
 	ThreadPool pool(2*(nP-1)+2);	
 
-//	for(int i = 0; i < 10; ++i)	
-	if(func == 0)	
-	bench_once(ios, &pool, circuit_file_location+"AES-non-expanded.txt");
-//	for(int i = 0; i < 10; ++i)
-	if(func == 1)	
 	bench_once(ios, &pool, circuit_file_location+"sha-1.txt");
-//	for(int i = 0; i < 10; ++i)
-	if(func == 2)	
-	bench_once(ios, &pool, circuit_file_location+"sha-256.txt");
-	
-//	bench_once(ios, &pool, "/home/wangxiao/git/emp-toolkit/constantmpc/circ.txt");
 	return 0;
 }
