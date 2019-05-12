@@ -89,14 +89,15 @@ class ABitMP { public:
 		check_MAC(io, MAC, KEY, data, Delta, length, party);
 #endif
 	}
+
 	future<void> check(block * MAC[nP+1], block * KEY[nP+1], bool* data, int length) {
 		future<void> ret = pool->enqueue([this, MAC, KEY, data, length](){
 			check1(MAC, KEY, data, length);
 			check2(MAC, KEY, data, length);
 		});
 		return ret;
+	}
 
-}
 	void check1(block * MAC[nP+1], block * KEY[nP+1], bool* data, int length) {
 		block seed = sampleRandom(io, &prg, pool, party);
 		PRG prg2(&seed);
