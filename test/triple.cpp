@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
 	ThreadPool pool(2*(nP-1)+2);	
 	FpreMP<nP> mp(ios, &pool, party);
 
-	int num_ands = 1<<18;
+	int num_ands = 1<<17;
 	block * mac[nP+1];
 	block * key[nP+1];
 	bool * value;
