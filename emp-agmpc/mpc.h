@@ -440,10 +440,10 @@ ret.get();
 	}
 	void Hash(block H[4][nP+1], const block & a, const block & b, uint64_t idx) {
 		block T[4];
-		T[0] = double_block(a);
-		T[1] = double_block(xorBlocks(a, Delta));
-		T[2] = double_block(double_block(b));
-		T[3] = double_block(double_block(xorBlocks(b, Delta)));
+		T[0] = sigma(a);
+		T[1] = sigma(xorBlocks(a, Delta));
+		T[2] = sigma(sigma(b));
+		T[3] = sigma(sigma(xorBlocks(b, Delta)));
 		
 		H[0][0] = xorBlocks(T[0], T[2]);  
 		H[1][0] = xorBlocks(T[0], T[3]);  
@@ -458,7 +458,7 @@ ret.get();
 	}
 
 	void Hash(block H[nP+1], const block &a, const block& b, uint64_t idx, uint64_t row) {
-		H[0] = xorBlocks(double_block(a), double_block(double_block(b)));
+		H[0] = xorBlocks(sigma(a), sigma(sigma(b)));
 		for(int i = 1; i <= nP; ++i) {
 			H[i] = xorBlocks(H[0], _mm_set_epi64x(4*idx+row, i));
 		}
