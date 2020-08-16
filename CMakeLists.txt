@@ -12,7 +12,6 @@ FIND_PACKAGE(emp-ot REQUIRED)
 INCLUDE_DIRECTORIES(${EMP-OT_INCLUDE_DIRS})
 
 install(DIRECTORY emp-agmpc DESTINATION include)
-install(DIRECTORY cmake/ DESTINATION cmake)
 
 # Test cases
 macro (add_test _name)
@@ -21,6 +20,7 @@ endmacro()
 
 add_test (test_mpc)
 add_test (test_mpc_individual)
+add_test (pr10_test)
 add_test (aes)
 add_test (sha1)
 add_test (sha256)

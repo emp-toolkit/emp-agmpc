@@ -3,6 +3,7 @@ CMakeFiles/
 Makefile
 bin/
 cmake_install.cmake
+install_manifest.txt
 
 # Compiled Object files
 *.slo
