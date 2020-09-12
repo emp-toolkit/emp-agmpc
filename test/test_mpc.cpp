@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 	ThreadPool pool(4);	
 	string file = circuit_file_location+"/AES-non-expanded.txt";
 	file = circuit_file_location+"/sha-1.txt";
-	CircuitFile cf(file.c_str());
+	BristolFormat cf(file.c_str());
 
 	CMPC<nP>* mpc = new CMPC<nP>(ios, &pool, party, &cf);
 	cout <<"Setup:\t"<<party<<"\n";
