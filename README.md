@@ -5,15 +5,12 @@ More details of the protocol can be found in the [paper](https://eprint.iacr.org
 
 <img src="https://raw.githubusercontent.com/emp-toolkit/emp-readme/master/art/logo-full.jpg" width=300px/>
 
-## Installation
 
-1. Install prerequisites using instructions [here](https://github.com/emp-toolkit/emp-readme).
-2. Install [emp-tool](https://github.com/emp-toolkit/emp-tool).
-3. Install [emp-ot](https://github.com/emp-toolkit/emp-ot).
-4. git clone https://github.com/emp-toolkit/emp-agmpc.git
-5. cd emp-agmpc && cmake . && make 
-
-## Test
+# Installation
+1. `wget https://raw.githubusercontent.com/emp-toolkit/emp-readme/master/scripts/install.py`
+2. `python install.py -install -tool -agmpc`
+    1. By default it will build for Release. `-DCMAKE_BUILD_TYPE=[Release|Debug]` option is also available.
+    2. No sudo? Change [`CMAKE_INSTALL_PREFIX`](https://cmake.org/cmake/help/v2.8.8/cmake.html#variable%3aCMAKE_INSTALL_PREFIX).
 
 
 ### Question
