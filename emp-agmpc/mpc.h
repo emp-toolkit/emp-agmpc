@@ -29,7 +29,7 @@ class CMPC { public:
 
 	block * labels;
 	bool * mask = nullptr;
-	CircuitFile * cf;
+	BristolFormat * cf;
 	NetIOMP<nP> * io;
 	int num_ands = 0, num_in;
 	int party, total_pre, ssp;
@@ -42,7 +42,7 @@ class CMPC { public:
 	block (*GT)[nP+1][4][nP+1];
 	block * eval_labels[nP+1];
 	PRP prp;
-	CMPC(NetIOMP<nP> * io[2], ThreadPool * pool, int party, CircuitFile * cf, int ssp = 40) {
+	CMPC(NetIOMP<nP> * io[2], ThreadPool * pool, int party, BristolFormat * cf, int ssp = 40) {
 		this->party = party;
 		this->io = io[0];
 		this->cf = cf;
@@ -155,12 +155,12 @@ ret.get();
 		for(int i = 0; i < cf->num_gate; ++i) {
 			if (cf->gates[4*i+3] == XOR_GATE) {
 				for(int j = 1; j <= nP; ++j) {
-					key[j][cf->gates[4*i+2]] = xorBlocks(key[j][cf->gates[4*i]], key[j][cf->gates[4*i+1]]);
-					mac[j][cf->gates[4*i+2]] = xorBlocks(mac[j][cf->gates[4*i]], mac[j][cf->gates[4*i+1]]);
+					key[j][cf->gates[4*i+2]] = key[j][cf->gates[4*i]] ^ key[j][cf->gates[4*i+1]];
+					mac[j][cf->gates[4*i+2]] = mac[j][cf->gates[4*i]] ^ mac[j][cf->gates[4*i+1]];
 				}
 				value[cf->gates[4*i+2]] = value[cf->gates[4*i]] != value[cf->gates[4*i+1]];
 				if(party != 1)
-					labels[cf->gates[4*i+2]] = xorBlocks(labels[cf->gates[4*i]], labels[cf->gates[4*i+1]]);
+					labels[cf->gates[4*i+2]] = labels[cf->gates[4*i]] ^ labels[cf->gates[4*i+1]];
 			} else if (cf->gates[4*i+3] == NOT_GATE) {
 				for(int j = 1; j <= nP; ++j) {
 					key[j][cf->gates[4*i+2]] = key[j][cf->gates[4*i]];
@@ -168,7 +168,7 @@ ret.get();
 				}
 				value[cf->gates[4*i+2]] = value[cf->gates[4*i]];
 				if(party != 1)
-					labels[cf->gates[4*i+2]] = xorBlocks(labels[cf->gates[4*i]], Delta);
+					labels[cf->gates[4*i+2]] = labels[cf->gates[4*i]] ^ Delta;
 			}
 		}
 
@@ -215,21 +215,21 @@ ret.get();
 
 				if(x[1][ands]) {
 					for(int j = 1; j <= nP; ++j) {
-						sigma_mac[j][ands] = xorBlocks(sigma_mac[j][ands], ANDS_mac[j][3*ands+1]);
-						sigma_key[j][ands] = xorBlocks(sigma_key[j][ands], ANDS_key[j][3*ands+1]);
+						sigma_mac[j][ands] = sigma_mac[j][ands] ^ ANDS_mac[j][3*ands+1];
+						sigma_key[j][ands] = sigma_key[j][ands] ^ ANDS_key[j][3*ands+1];
 					}
 					sigma_value[ands] = sigma_value[ands] != ANDS_value[3*ands+1];
 				}
 				if(y[1][ands]) {
 					for(int j = 1; j <= nP; ++j) {
-						sigma_mac[j][ands] = xorBlocks(sigma_mac[j][ands], ANDS_mac[j][3*ands]);
-						sigma_key[j][ands] = xorBlocks(sigma_key[j][ands], ANDS_key[j][3*ands]);
+						sigma_mac[j][ands] = sigma_mac[j][ands] ^ ANDS_mac[j][3*ands];
+						sigma_key[j][ands] = sigma_key[j][ands] ^ ANDS_key[j][3*ands];
 					}
 					sigma_value[ands] = sigma_value[ands] != ANDS_value[3*ands];
 				}
 				if(x[1][ands] and y[1][ands]) {
 					if(party != 1)
-						sigma_key[1][ands] = xorBlocks(sigma_key[1][ands], Delta);
+						sigma_key[1][ands] = sigma_key[1][ands] ^ Delta;
 					else
 						sigma_value[ands] = not sigma_value[ands];
 				}
@@ -260,27 +260,27 @@ ret.get();
 				r[3] = r[1] != value[cf->gates[4*i+1]];
 
 				for(int j = 1; j <= nP; ++j) {
-					M[0][j] = xorBlocks(sigma_mac[j][ands], mac[j][cf->gates[4*i+2]]);
-					M[1][j] = xorBlocks(M[0][j], mac[j][cf->gates[4*i]]);
-					M[2][j] = xorBlocks(M[0][j], mac[j][cf->gates[4*i+1]]);
-					M[3][j] = xorBlocks(M[1][j], mac[j][cf->gates[4*i+1]]);
+					M[0][j] = sigma_mac[j][ands] ^ mac[j][cf->gates[4*i+2]];
+					M[1][j] = M[0][j] ^ mac[j][cf->gates[4*i]];
+					M[2][j] = M[0][j] ^ mac[j][cf->gates[4*i+1]];
+					M[3][j] = M[1][j] ^ mac[j][cf->gates[4*i+1]];
 
-					K[0][j] = xorBlocks(sigma_key[j][ands], key[j][cf->gates[4*i+2]]);
-					K[1][j] = xorBlocks(K[0][j], key[j][cf->gates[4*i]]);
-					K[2][j] = xorBlocks(K[0][j], key[j][cf->gates[4*i+1]]);
-					K[3][j] = xorBlocks(K[1][j], key[j][cf->gates[4*i+1]]);
+					K[0][j] = sigma_key[j][ands] ^ key[j][cf->gates[4*i+2]];
+					K[1][j] = K[0][j] ^ key[j][cf->gates[4*i]];
+					K[2][j] = K[0][j] ^ key[j][cf->gates[4*i+1]];
+					K[3][j] = K[1][j] ^ key[j][cf->gates[4*i+1]];
 				}
-				K[3][1] = xorBlocks(K[3][1], Delta);
+				K[3][1] = K[3][1] ^ Delta;
 
 				Hash(H, labels[cf->gates[4*i]], labels[cf->gates[4*i+1]], ands);
 				for(int j = 0; j < 4; ++j) {
 					for(int k = 1; k <= nP; ++k) if(k != party) {
-						H[j][k] = xorBlocks(H[j][k], M[j][k]);
-						H[j][party] = xorBlocks(H[j][party], K[j][k]);
+						H[j][k] = H[j][k] ^ M[j][k];
+						H[j][party] = H[j][party] ^ K[j][k];
 					}
-					H[j][party] = xorBlocks(H[j][party], labels[cf->gates[4*i+2]]);
+					H[j][party] = H[j][party] ^ labels[cf->gates[4*i+2]];
 					if(r[j]) 
-						H[j][party] = xorBlocks(H[j][party], Delta);
+						H[j][party] = H[j][party] ^ Delta;
 				}
 				for(int j = 0; j < 4; ++j)
 					io->send_data(1, H[j]+1, sizeof(block)*(nP));
@@ -304,15 +304,15 @@ ret.get();
 				r[3] = r[3] != true;
 
 				for(int j = 1; j <= nP; ++j) {
-					M[0][j] = xorBlocks(sigma_mac[j][ands], mac[j][cf->gates[4*i+2]]);
-					M[1][j] = xorBlocks(M[0][j], mac[j][cf->gates[4*i]]);
-					M[2][j] = xorBlocks(M[0][j], mac[j][cf->gates[4*i+1]]);
-					M[3][j] = xorBlocks(M[1][j], mac[j][cf->gates[4*i+1]]);
+					M[0][j] = sigma_mac[j][ands] ^ mac[j][cf->gates[4*i+2]];
+					M[1][j] = M[0][j] ^ mac[j][cf->gates[4*i]];
+					M[2][j] = M[0][j] ^ mac[j][cf->gates[4*i+1]];
+					M[3][j] = M[1][j] ^ mac[j][cf->gates[4*i+1]];
 
-					K[0][j] = xorBlocks(sigma_key[j][ands], key[j][cf->gates[4*i+2]]);
-					K[1][j] = xorBlocks(K[0][j], key[j][cf->gates[4*i]]);
-					K[2][j] = xorBlocks(K[0][j], key[j][cf->gates[4*i+1]]);
-					K[3][j] = xorBlocks(K[1][j], key[j][cf->gates[4*i+1]]);
+					K[0][j] = sigma_key[j][ands] ^ key[j][cf->gates[4*i+2]];
+					K[1][j] = K[0][j] ^ key[j][cf->gates[4*i]];
+					K[2][j] = K[0][j] ^ key[j][cf->gates[4*i+1]];
+					K[3][j] = K[1][j] ^ key[j][cf->gates[4*i+1]];
 				}
 				memcpy(GTK[ands], K, sizeof(block)*4*(nP+1));
 				memcpy(GTM[ands], M, sizeof(block)*4*(nP+1));
@@ -363,7 +363,7 @@ ret.get();
 		if(party!= 1) {
 			for(int i = 0; i < num_in; ++i) {
 				block tmp = labels[i];
-				if(mask_input[i]) tmp = xorBlocks(tmp, Delta);
+				if(mask_input[i]) tmp = tmp ^ Delta;
 				io->send_data(1, &tmp, sizeof(block));
 			}
 			io->flush(1);
@@ -381,7 +381,7 @@ ret.get();
 			for(int i = 0; i < cf->num_gate; ++i) {
 				if (cf->gates[4*i+3] == XOR_GATE) {
 					for(int j = 2; j<= nP; ++j)
-						eval_labels[j][cf->gates[4*i+2]] = xorBlocks(eval_labels[j][cf->gates[4*i]], eval_labels[j][cf->gates[4*i+1]]);
+						eval_labels[j][cf->gates[4*i+2]] = eval_labels[j][cf->gates[4*i]] ^ eval_labels[j][cf->gates[4*i+1]];
 					mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i]] != mask_input[cf->gates[4*i+1]];
 				} else if (cf->gates[4*i+3] == AND_GATE) {
 					int index = 2*mask_input[cf->gates[4*i]] + mask_input[cf->gates[4*i+1]];
@@ -393,13 +393,13 @@ ret.get();
 						Hash(H, eval_labels[j][cf->gates[4*i]], eval_labels[j][cf->gates[4*i+1]], ands, index);
 						xorBlocks_arr(H, H, GT[ands][j][index], nP+1);
 						for(int k = 2; k <= nP; ++k)
-							eval_labels[k][cf->gates[4*i+2]] = xorBlocks(H[k], eval_labels[k][cf->gates[4*i+2]]);
+							eval_labels[k][cf->gates[4*i+2]] = H[k] ^ eval_labels[k][cf->gates[4*i+2]];
 					
-						block t0 = xorBlocks(GTK[ands][index][j], Delta);
+						block t0 = GTK[ands][index][j] ^ Delta;
 
-						if(block_cmp(&H[1], &GTK[ands][index][j], 1))
+						if(cmpBlock(&H[1], &GTK[ands][index][j], 1))
 							mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i+2]] != false;
-						else if(block_cmp(&H[1], &t0, 1))
+						else if(cmpBlock(&H[1], &t0, 1))
 							mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i+2]] != true;
 						else 	{cout <<ands <<"no match GT!"<<endl<<flush;
 						}
@@ -441,16 +441,16 @@ ret.get();
 	void Hash(block H[4][nP+1], const block & a, const block & b, uint64_t idx) {
 		block T[4];
 		T[0] = sigma(a);
-		T[1] = sigma(xorBlocks(a, Delta));
+		T[1] = sigma(a ^ Delta);
 		T[2] = sigma(sigma(b));
-		T[3] = sigma(sigma(xorBlocks(b, Delta)));
+		T[3] = sigma(sigma(b ^ Delta));
 		
-		H[0][0] = xorBlocks(T[0], T[2]);  
-		H[1][0] = xorBlocks(T[0], T[3]);  
-		H[2][0] = xorBlocks(T[1], T[2]);  
-		H[3][0] = xorBlocks(T[1], T[3]);  
+		H[0][0] = T[0] ^ T[2];  
+		H[1][0] = T[0] ^ T[3];  
+		H[2][0] = T[1] ^ T[2];  
+		H[3][0] = T[1] ^ T[3];  
 		for(int j = 0; j < 4; ++j) for(int i = 1; i <= nP; ++i) {
-			H[j][i] = xorBlocks(H[j][0], _mm_set_epi64x(4*idx+j, i));
+			H[j][i] = H[j][0] ^ makeBlock(4*idx+j, i);
 		}
 		for(int j = 0; j < 4; ++j) {
 			prp.permute_block(H[j]+1, nP);
@@ -458,9 +458,9 @@ ret.get();
 	}
 
 	void Hash(block H[nP+1], const block &a, const block& b, uint64_t idx, uint64_t row) {
-		H[0] = xorBlocks(sigma(a), sigma(sigma(b)));
+		H[0] = sigma(a) ^ sigma(sigma(b));
 		for(int i = 1; i <= nP; ++i) {
-			H[i] = xorBlocks(H[0], _mm_set_epi64x(4*idx+row, i));
+			H[i] = H[0] ^ makeBlock(4*idx+row, i);
 		}
 		prp.permute_block(H+1, nP);
 	}
@@ -495,7 +495,7 @@ ret.get();
 				block * tmp = new block[end[party]-start[party]];
 				for(int i =  0; i < end[party] - start[party]; ++i) {
 					tmp[i] = key[party2][i+start[party]];
-					if(input_mask[party2][i])tmp[i] = xorBlocks(tmp[i], Delta);
+					if(input_mask[party2][i])tmp[i] = tmp[i] ^ Delta;
 				}
 				emp::Hash::hash_once(dig2, tmp, (end[party]-start[party])*sizeof(block));
 				io->recv_data(party2, dig, Hash::DIGEST_SIZE);
@@ -536,7 +536,7 @@ ret.get();
 		if(party!= 1) {
 			for(int i = 0; i < num_in; ++i) {
 				block tmp = labels[i];
-				if(mask_input[i]) tmp = xorBlocks(tmp, Delta);
+				if(mask_input[i]) tmp = tmp ^ Delta;
 				io->send_data(1, &tmp, sizeof(block));
 			}
 			io->flush(1);
@@ -554,7 +554,7 @@ ret.get();
 			for(int i = 0; i < cf->num_gate; ++i) {
 				if (cf->gates[4*i+3] == XOR_GATE) {
 					for(int j = 2; j<= nP; ++j)
-						eval_labels[j][cf->gates[4*i+2]] = xorBlocks(eval_labels[j][cf->gates[4*i]], eval_labels[j][cf->gates[4*i+1]]);
+						eval_labels[j][cf->gates[4*i+2]] = eval_labels[j][cf->gates[4*i]] ^ eval_labels[j][cf->gates[4*i+1]];
 					mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i]] != mask_input[cf->gates[4*i+1]];
 				} else if (cf->gates[4*i+3] == AND_GATE) {
 					int index = 2*mask_input[cf->gates[4*i]] + mask_input[cf->gates[4*i+1]];
@@ -566,13 +566,13 @@ ret.get();
 						Hash(H, eval_labels[j][cf->gates[4*i]], eval_labels[j][cf->gates[4*i+1]], ands, index);
 						xorBlocks_arr(H, H, GT[ands][j][index], nP+1);
 						for(int k = 2; k <= nP; ++k)
-							eval_labels[k][cf->gates[4*i+2]] = xorBlocks(H[k], eval_labels[k][cf->gates[4*i+2]]);
+							eval_labels[k][cf->gates[4*i+2]] = H[k] ^ eval_labels[k][cf->gates[4*i+2]];
 					
-						block t0 = xorBlocks(GTK[ands][index][j], Delta);
+						block t0 = GTK[ands][index][j] ^ Delta;
 
-						if(block_cmp(&H[1], &GTK[ands][index][j], 1))
+						if(cmpBlock(&H[1], &GTK[ands][index][j], 1))
 							mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i+2]] != false;
-						else if(block_cmp(&H[1], &t0, 1))
+						else if(cmpBlock(&H[1], &t0, 1))
 							mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i+2]] != true;
 						else 	{cout <<ands <<"no match GT!"<<endl<<flush;
 						}

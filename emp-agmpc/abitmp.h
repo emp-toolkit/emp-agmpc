@@ -7,8 +7,8 @@
 
 template<int nP>
 class ABitMP { public:
-	DeltaOT *abit1[nP+1];
-	DeltaOT *abit2[nP+1];
+	IKNP<NetIO> *abit1[nP+1];
+	IKNP<NetIO> *abit2[nP+1];
 	NetIOMP<nP> *io;
 	ThreadPool * pool;
 	int party;
@@ -22,16 +22,15 @@ class ABitMP { public:
 		this->io = io;
 		this->pool = pool;
 		this->party = party;
-		bool * tmp = new bool[128+ssp];
-		prg.random_bool(tmp, 128+ssp);
-		pretable = DeltaOT::preTable(ssp);
+		bool * tmp = new bool[128];
+		prg.random_bool(tmp, 128);
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j <= nP; ++j) if(i < j) {
 			if(i == party) {
-					abit1[j] = new DeltaOT(io->get(j, false), pretable);
-					abit2[j] = new DeltaOT(io->get(j, true), pretable);
+					abit1[j] = new IKNP<NetIO>(io->get(j, false));
+					abit2[j] = new IKNP<NetIO>(io->get(j, true));
 			} else if (j == party) {
-					abit2[i] = new DeltaOT(io->get(i, false), pretable);
-					abit1[i] = new DeltaOT(io->get(i, true), pretable);
+					abit2[i] = new IKNP<NetIO>(io->get(i, false));
+					abit1[i] = new IKNP<NetIO>(io->get(i, true));
 			}
 		}
 
@@ -76,11 +75,11 @@ class ABitMP { public:
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 			int party2 = i + j - party;
 			res.push_back(pool->enqueue([this, KEY, length, party2]() {
-				abit1[party2]->send(KEY[party2], length);
+				abit1[party2]->send_cot(KEY[party2], length);
 				io->flush(party2);
 			}));
 			res.push_back(pool->enqueue([this, MAC, data, length, party2]() {
-				abit2[party2]->recv(MAC[party2], data, length);
+				abit2[party2]->recv_cot(MAC[party2], data, length);
 				io->flush(party2);
 			}));
 		}
@@ -149,14 +148,14 @@ class ABitMP { public:
 				for(int i = SIZE*tt; i < SIZE*(tt+1) and i < length; i+=chk) {
 				  tMAC[(i-start)/chk][1] = MAC[k][i];
 				  tMAC[(i-start)/chk][2] = MAC[k][i+1];
-				  tMAC[(i-start)/chk][3] = xorBlocks(MAC[k][i], MAC[k][i+1]);
+				  tMAC[(i-start)/chk][3] = MAC[k][i] ^ MAC[k][i+1];
 
 				  tKEY[(i-start)/chk][1] = KEY[k][i];
 				  tKEY[(i-start)/chk][2] = KEY[k][i+1];
-				  tKEY[(i-start)/chk][3] = xorBlocks(KEY[k][i], KEY[k][i+1]);
+				  tKEY[(i-start)/chk][3] = KEY[k][i] ^ KEY[k][i+1];
 				  for(int j = 0; j < ssp; ++j) {
-							 Ms[k][j] = xorBlocks(Ms[k][j], tMAC[(i-start)/chk][*tmpptr]);
-							 Ks[k][j] = xorBlocks(Ks[k][j], tKEY[(i-start)/chk][*tmpptr]);
+							 Ms[k][j] = Ms[k][j] ^ tMAC[(i-start)/chk][*tmpptr];
+							 Ks[k][j] = Ks[k][j] ^ tKEY[(i-start)/chk][*tmpptr];
 							 bs[k][j] = bs[k][j] != tb[i/chk][*tmpptr];
 							 ++tmpptr;
 					}
@@ -179,9 +178,9 @@ class ABitMP { public:
 				io->recv_data(party2, tbs[party2], ssp);
 				for(int k = 0; k < ssp; ++k) {
 					if(tbs[party2][k])
-						Ks[party2][k] = xorBlocks(Ks[party2][k], Delta);
+						Ks[party2][k] = Ks[party2][k] ^ Delta;
 				}
-				return !block_cmp(Ks[party2], tMs[party2], ssp);
+				return !cmpBlock(Ks[party2], tMs[party2], ssp);
 			}));
 		}
 		if(joinNcleanCheat(res)) error("cheat check1\n");
@@ -214,11 +213,11 @@ class ABitMP { public:
 	
 		
 		for(int i = 0; i < ssp; ++i) {
-			Ks[0][i] = zero_block();
+			Ks[0][i] = zero_block;
 			for(int j = 1; j <= nP; ++j) if(j != party)
-				Ks[0][i] = xorBlocks(Ks[0][i], KEY[j][length-3*ssp+i]);
+				Ks[0][i] = Ks[0][i] ^ KEY[j][length-3*ssp+i];
 			
-			Ks[1][i] = xorBlocks(Ks[0][i], Delta);
+			Ks[1][i] = Ks[0][i] ^ Delta;
 			Hash::hash_once(dgst0[party*ssp+i], &Ks[0][i], sizeof(block));
 			Hash::hash_once(dgst1[party*ssp+i], &Ks[1][i], sizeof(block));
 		}
@@ -312,9 +311,9 @@ class ABitMP { public:
 			memset(tmp_block, 0, sizeof(block)*ssp);
 			for(int j = 1; j <= nP; ++j) if(j != i) {
 				for(int k = 0; k < ssp; ++k)
-					tmp_block[k] = xorBlocks(tmp_block[k], Ms[j][i][k]);
+					tmp_block[k] = tmp_block[k] ^ Ms[j][i][k];
 			}
-			cheat = cheat or !block_cmp(tmp_block, KK[i], ssp);
+			cheat = cheat or !cmpBlock(tmp_block, KK[i], ssp);
 		}
 		if(cheat) error("cheat aShare\n");
 

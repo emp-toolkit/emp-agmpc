@@ -12,13 +12,13 @@ using std::cerr;
 using std::endl;
 using std::flush;
 
-const static block inProdTableBlock[] = {zero_block(), one_block()};
+const static block inProdTableBlock[] = {zero_block, makeBlock(0xFFFFFFFFULL, 0xFFFFFFFFULL)};
 block inProd(bool * b, block * blk, int length) {
-		block res = zero_block();
+		block res = zero_block;
 		for(int i = 0; i < length; ++i) 
 //			if(b[i])
-//				res = xorBlocks(res, blk[i]);
-			res = xorBlocks(res, andBlocks(inProdTableBlock[b[i]],blk[i]));
+//				res = res ^ blk[i];
+			res = res ^ (inProdTableBlock[b[i]] & blk[i]);
 		return res;
 }
 #ifdef __GNUC__
@@ -31,7 +31,7 @@ block inProd(bool * b, block * blk, int length) {
 template<int ssp>
 void inProdhelp(block *Ms,  bool * tmp[ssp],  block * MAC, int i) {
 	for(int j = 0; j < ssp; ++j)
-		Ms[j] = xorBlocks(Ms[j], andBlocks(inProdTableBlock[tmp[j][i]],MAC[i]));
+		Ms[j] = Ms[j] ^ (inProdTableBlock[tmp[j][i]] & MAC[i]);
 }
 #ifdef __GNUC__
 	#ifndef __clang__
@@ -148,7 +148,7 @@ block sampleRandom(NetIOMP<nP> * io, PRG * prg, ThreadPool * pool, int party) {
 		exit(0);
 	}
 	for(int i = 2; i <= nP; ++i)
-		S[1] = xorBlocks(S[1], S[i]);
+		S[1] = S[1] ^ S[i];
 	block result = S[1];
 	delete[] S;
 	delete[] dgst;
@@ -168,9 +168,9 @@ void check_MAC(NetIOMP<nP> * io, block * MAC[nP+1], block * KEY[nP+1], bool * r,
 			io->recv_data(i, &tD, sizeof(block));
 			io->recv_data(i, tmp, sizeof(block)*length);
 			for(int k = 0; k < length; ++k) {
-				if(r[k])tmp[k] = xorBlocks(tmp[k], tD);
+				if(r[k])tmp[k] = tmp[k] ^ tD;
 			}
-			if(!block_cmp(MAC[i], tmp, length))
+			if(!cmpBlock(MAC[i], tmp, length))
 				error("check_MAC failed!");
 		}
 	}
@@ -203,4 +203,35 @@ void check_correctness(NetIOMP<nP>* io, bool * r, int length, int party) {
 	}
 }
 
+inline const char* hex_char_to_bin(char c) {
+	switch(toupper(c)) {
+		case '0': return "0000";
+		case '1': return "0001";
+		case '2': return "0010";
+		case '3': return "0011";
+		case '4': return "0100";
+		case '5': return "0101";
+		case '6': return "0110";
+		case '7': return "0111";
+		case '8': return "1000";
+		case '9': return "1001";
+		case 'A': return "1010";
+		case 'B': return "1011";
+		case 'C': return "1100";
+		case 'D': return "1101";
+		case 'E': return "1110";
+		case 'F': return "1111";
+		default: return "0";
+	}
+}
+
+
+inline std::string hex_to_binary(std::string hex) {
+	std::string bin;
+	for(unsigned i = 0; i != hex.length(); ++i)
+		bin += hex_char_to_bin(hex[i]);
+	return bin;
+}
+
 #endif// __HELPER
+

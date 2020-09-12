@@ -15,8 +15,8 @@ class FpreMP { public:
 	NetIOMP<nP> * io;
 	ABitMP<nP>* abit;
 	block Delta;
-	PRP * prps;
-	PRP * prps2;
+	CRH * prps;
+	CRH * prps2;
 	PRG * prgs;
 	PRG prg;
 	int ssp;
@@ -27,8 +27,8 @@ class FpreMP { public:
 		this ->ssp = ssp;
 		abit = new ABitMP<nP>(io[1], pool, party);
 		Delta = abit->Delta;
-		prps = new PRP[nP+1];
-		prps2 = new PRP[nP+1];
+		prps = new CRH[nP+1];
+		prps2 = new CRH[nP+1];
 		prgs = new PRG[nP+1];
 	}
 	~FpreMP(){
@@ -120,7 +120,7 @@ class FpreMP { public:
 				io->recv_data(party2, tmp, length*bucket_size);
 				for(int k = 0; k < length*bucket_size; ++k) {
 					if(tmp[k])
-						tKEY[party2][3*k+2] = xorBlocks(tKEY[party2][3*k+2], Delta);
+						tKEY[party2][3*k+2] = tKEY[party2][3*k+2] ^ Delta;
 				}
 				delete[] tmp;
 			}));
@@ -133,12 +133,12 @@ class FpreMP { public:
 		ret.get();
 		//check compute phi
 		for(int k = 0; k < length*bucket_size; ++k) {
-			phi[k] = zero_block();
+			phi[k] = zero_block;
 			for(int i = 1; i <= nP; ++i) if (i != party) {
-				phi[k] = xorBlocks(phi[k], tKEY[i][3*k+1]);
-				phi[k] = xorBlocks(phi[k], tMAC[i][3*k+1]);
+				phi[k] = phi[k] ^ tKEY[i][3*k+1];
+				phi[k] = phi[k] ^ tMAC[i][3*k+1];
 			}
-			if(tr[3*k+1])phi[k] = xorBlocks(phi[k], Delta);
+			if(tr[3*k+1])phi[k] = phi[k] ^ Delta;
 		}
 
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
@@ -147,11 +147,11 @@ class FpreMP { public:
 				block bH[2], tmpH[2];
 				for(int k = 0; k < length*bucket_size; ++k) {
 					bH[0] = tKEY[party2][3*k];
-					bH[1] = xorBlocks(bH[0], Delta);
-					prps[party2].Hn(bH, bH, 2*k, 2, tmpH);
+					bH[1] = bH[0] ^ Delta;
+					HnID(prps+party2, bH, bH, 2*k, 2, tmpH);
 					tKEYphi[party2][k] = bH[0];
-					bH[1] = xorBlocks(bH[0], bH[1]);
-					bH[1] = xorBlocks(phi[k], bH[1]);
+					bH[1] = bH[0] ^ bH[1];
+					bH[1] = phi[k] ^ bH[1];
 					io->send_data(party2, &bH[1], sizeof(block));
 				}
 				io->flush(party2);
@@ -160,8 +160,9 @@ class FpreMP { public:
 				block bH;
 				for(int k = 0; k < length*bucket_size; ++k) {
 					io->recv_data(party2, &bH, sizeof(block));
-					tMACphi[party2][k] = prps2[party2].H(tMAC[party2][3*k], 2*k+tr[3*k]);
-					if(tr[3*k])tMACphi[party2][k] = xorBlocks(tMACphi[party2][k], bH);
+					block hin = sigma(tMAC[party2][3*k]) ^ makeBlock(0, 2*k+tr[3*k]);
+					tMACphi[party2][k] = prps2[party2].H(hin);
+					if(tr[3*k])tMACphi[party2][k] = tMACphi[party2][k] ^ bH;
 				}
 			}));
 		}
@@ -175,15 +176,15 @@ class FpreMP { public:
 #endif
 		//tKEYphti use as H
 		for(int k = 0; k < length*bucket_size; ++k) {
-			tKEYphi[party][k] = zero_block();
+			tKEYphi[party][k] = zero_block;
 			for(int i = 1; i <= nP; ++i) if (i != party) {
-				tKEYphi[party][k] = xorBlocks(tKEYphi[party][k], tKEYphi[i][k]);
-				tKEYphi[party][k] = xorBlocks(tKEYphi[party][k], tMACphi[i][k]);
-				tKEYphi[party][k] = xorBlocks(tKEYphi[party][k], tKEY[i][3*k+2]);
-				tKEYphi[party][k] = xorBlocks(tKEYphi[party][k], tMAC[i][3*k+2]);
+				tKEYphi[party][k] = tKEYphi[party][k] ^ tKEYphi[i][k];
+				tKEYphi[party][k] = tKEYphi[party][k] ^ tMACphi[i][k];
+				tKEYphi[party][k] = tKEYphi[party][k] ^ tKEY[i][3*k+2];
+				tKEYphi[party][k] = tKEYphi[party][k] ^ tMAC[i][3*k+2];
 			}
-			if(tr[3*k])	 tKEYphi[party][k] = xorBlocks(tKEYphi[party][k], phi[k]);
-			if(tr[3*k+2])tKEYphi[party][k] = xorBlocks(tKEYphi[party][k], Delta);
+			if(tr[3*k])	 tKEYphi[party][k] = tKEYphi[party][k] ^ phi[k];
+			if(tr[3*k+2])tKEYphi[party][k] = tKEYphi[party][k] ^ Delta;
 		}
 
 #ifdef __debug
@@ -223,8 +224,8 @@ class FpreMP { public:
 
 		for(int i = 2; i <= nP; ++i)
 			xorBlocks_arr(X[1], X[1], X[i], ssp);
-		for(int i = 0; i < ssp; ++i)X[2][i] = zero_block();
-		if(!block_cmp(X[1], X[2], ssp)) error("AND check");
+		for(int i = 0; i < ssp; ++i)X[2][i] = zero_block;
+		if(!cmpBlock(X[1], X[2], ssp)) error("AND check");
 	
 		//land -> and	
 		block S = sampleRandom<nP>(io, &prg, pool, party);
@@ -254,11 +255,11 @@ class FpreMP { public:
 				memcpy(MAC[j]+3*i, tMAC[j]+3*location[i*bucket_size], 3*sizeof(block));
 				memcpy(KEY[j]+3*i, tKEY[j]+3*location[i*bucket_size], 3*sizeof(block));
 				for(int k = 1; k < bucket_size; ++k) {
-					MAC[j][3*i] = xorBlocks(MAC[j][3*i], tMAC[j][3*location[i*bucket_size+k]]);
-					KEY[j][3*i] = xorBlocks(KEY[j][3*i], tKEY[j][3*location[i*bucket_size+k]]);
+					MAC[j][3*i] = MAC[j][3*i] ^ tMAC[j][3*location[i*bucket_size+k]];
+					KEY[j][3*i] = KEY[j][3*i] ^ tKEY[j][3*location[i*bucket_size+k]];
 
-					MAC[j][3*i+2] = xorBlocks(MAC[j][3*i+2], tMAC[j][3*location[i*bucket_size+k]+2]);
-					KEY[j][3*i+2] = xorBlocks(KEY[j][3*i+2], tKEY[j][3*location[i*bucket_size+k]+2]);
+					MAC[j][3*i+2] = MAC[j][3*i+2] ^ tMAC[j][3*location[i*bucket_size+k]+2];
+					KEY[j][3*i+2] = KEY[j][3*i+2] ^ tKEY[j][3*location[i*bucket_size+k]+2];
 				}
 			}
 			memcpy(r+3*i, tr+3*location[i*bucket_size], 3);
@@ -287,8 +288,8 @@ class FpreMP { public:
 			for(int j = 1; j <= nP; ++j)if (j!= party) { 
 				for(int k = 1; k < bucket_size; ++k)
 					if(d[1][(bucket_size-1)*i+k-1]) {
-						MAC[j][3*i+2] = xorBlocks(MAC[j][3*i+2], tMAC[j][3*location[i*bucket_size+k]]);
-						KEY[j][3*i+2] = xorBlocks(KEY[j][3*i+2], tKEY[j][3*location[i*bucket_size+k]]);
+						MAC[j][3*i+2] = MAC[j][3*i+2] ^ tMAC[j][3*location[i*bucket_size+k]];
+						KEY[j][3*i+2] = KEY[j][3*i+2] ^ tKEY[j][3*location[i*bucket_size+k]];
 					}
 			}
 			for(int k = 1; k < bucket_size; ++k)
@@ -327,15 +328,15 @@ class FpreMP { public:
 		uint8_t data = 0;
 		block tmp[4], tmp2[4], tmpH[4];
 		tmp[0] = KEY[3*i];
-		tmp[1] = xorBlocks(tmp[0], Delta);
+		tmp[1] = tmp[0] ^ Delta;
 		tmp[2] = KEY[3*i+1];
-		tmp[3] = xorBlocks(tmp[2], Delta);
-		prps[I].Hn(tmp, tmp, 4*i, 4, tmpH);
+		tmp[3] = tmp[2] ^ Delta;
+		HnID(prps+I, tmp, tmp, 4*i, 4, tmpH);
 
-		tmp2[0] = xorBlocks(tmp[0], tmp[2]);
-		tmp2[1] = xorBlocks(tmp[1], tmp[2]);
-		tmp2[2] = xorBlocks(tmp[0], tmp[3]);
-		tmp2[3] = xorBlocks(tmp[1], tmp[3]);
+		tmp2[0] = tmp[0] ^ tmp[2];
+		tmp2[1] = tmp[1] ^ tmp[2];
+		tmp2[2] = tmp[0] ^ tmp[3];
+		tmp2[3] = tmp[1] ^ tmp[3];
 
 		data = LSB(tmp2[0]);
 		data |= (LSB(tmp2[1])<<1);
@@ -352,7 +353,9 @@ class FpreMP { public:
 		return data;
 	}
 	bool evaluate(uint8_t tmp, block * MAC, bool * r, int i, int I) {
-		block bH = xorBlocks(prps[I].H(MAC[3*i], 4*i + r[3*i]), prps[I].H(MAC[3*i+1], 4*i + 2 + r[3*i+1]));
+		block hin = sigma(MAC[3*i]) ^ makeBlock(0, 4*i + r[3*i]);
+		block hin2 = sigma(MAC[3*i+1]) ^ makeBlock(0, 4*i + 2 + r[3*i+1]);
+		block bH = prps[I].H(hin) ^ prps[I].H(hin2);
 		uint8_t res = LSB(bH);
 		tmp >>= (r[3*i+1]*2+r[3*i]);
 		return (tmp&0x1) != (res&0x1);
@@ -370,9 +373,9 @@ class FpreMP { public:
 				io->recv_data(i, tD, length*sizeof(block));
 				io->recv_data(i, tmp, sizeof(block)*length);
 				for(int k = 0; k < length; ++k) {
-					if(r[k])tmp[k] = xorBlocks(tmp[k], tD[k]);
+					if(r[k])tmp[k] = tmp[k] ^ tD[k];
 				}
-				if(!block_cmp(MAC[i], tmp, length))
+				if(!cmpBlock(MAC[i], tmp, length))
 					error("check_MAC_phi failed!");
 			}
 		}
@@ -392,9 +395,9 @@ class FpreMP { public:
 				io->recv_data(i, tmp2, l*sizeof(block));
 				xorBlocks_arr(tmp1, tmp1, tmp2, l);
 			}
-			block z = zero_block();
+			block z = zero_block;
 			for(int i = 0; i < l; ++i)
-				if(!block_cmp(&z, &tmp1[i], 1))
+				if(!cmpBlock(&z, &tmp1[i], 1))
 					error("check sum zero failed!");
 			cerr<<"check zero sum pass!\n"<<flush; 
 			delete[] tmp1;
@@ -402,6 +405,23 @@ class FpreMP { public:
 		} else {
 			io->send_data(1, b, l*sizeof(block));
 			io->flush(1);
+		}
+	}
+	void HnID(CRH* crh, block*out, block* in, uint64_t id, int length, block * scratch = nullptr) {
+		bool del = false;
+		if(scratch == nullptr) {
+			del = true;
+			scratch = new block[length];
+		}
+		for(int i = 0; i < length; ++i){
+			out[i] = scratch[i] = sigma(in[i]) ^ makeBlock(0, id);
+			++id;
+		}
+		crh->permute_block(scratch, length);
+		xorBlocks_arr(out, scratch, out, length);
+		if(del) {
+			delete[] scratch;
+			scratch = nullptr;
 		}
 	}
 };
