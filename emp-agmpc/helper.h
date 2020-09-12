@@ -170,7 +170,7 @@ void check_MAC(NetIOMP<nP> * io, block * MAC[nP+1], block * KEY[nP+1], bool * r,
 			for(int k = 0; k < length; ++k) {
 				if(r[k])tmp[k] = tmp[k] ^ tD;
 			}
-			if(!block_cmp(MAC[i], tmp, length))
+			if(!cmpBlock(MAC[i], tmp, length))
 				error("check_MAC failed!");
 		}
 	}
