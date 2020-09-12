@@ -375,7 +375,7 @@ class FpreMP { public:
 				for(int k = 0; k < length; ++k) {
 					if(r[k])tmp[k] = tmp[k] ^ tD[k];
 				}
-				if(!block_cmp(MAC[i], tmp, length))
+				if(!cmpBlock(MAC[i], tmp, length))
 					error("check_MAC_phi failed!");
 			}
 		}
