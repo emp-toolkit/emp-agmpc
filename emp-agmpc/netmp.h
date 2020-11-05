@@ -47,12 +47,10 @@ class NetIOMP { public:
 	}
 	int64_t count() {
 		int64_t res = 0;
-#ifdef COUNT_IO
 		for(int i = 1; i <= nP; ++i) if(i != party){
 			res += ios[i]->counter;
 			res += ios2[i]->counter;
 		}
-#endif
 		return res;
 	}
 
