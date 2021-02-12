@@ -1,4 +1,9 @@
-# EMP-agmpc [![Build Status](https://travis-ci.org/emp-toolkit/emp-agmpc.svg?branch=master)](https://travis-ci.org/emp-toolkit/emp-agmpc)
+# EMP-agmpc 
+![arm](https://github.com/emp-toolkit/emp-agmpc/workflows/arm/badge.svg)
+![x86](https://github.com/emp-toolkit/emp-agmpc/workflows/x86/badge.svg)
+
+<img src="https://raw.githubusercontent.com/emp-toolkit/emp-readme/master/art/logo-full.jpg" width=300px/>
+
 ## Global-Scale Secure Multiparty Computation
 
 More details of the protocol can be found in the [paper](https://eprint.iacr.org/2017/189).
