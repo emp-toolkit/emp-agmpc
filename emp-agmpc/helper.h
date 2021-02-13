@@ -12,7 +12,8 @@ using std::cerr;
 using std::endl;
 using std::flush;
 
-const static block inProdTableBlock[] = {zero_block, makeBlock(0xFFFFFFFFULL, 0xFFFFFFFFULL)};
+const static block inProdTableBlock[] = {zero_block, all_one_block};
+
 block inProd(bool * b, block * blk, int length) {
 		block res = zero_block;
 		for(int i = 0; i < length; ++i) 
