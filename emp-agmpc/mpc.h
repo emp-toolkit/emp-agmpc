@@ -3,6 +3,7 @@
 #include "fpremp.h"
 #include "abitmp.h"
 #include "netmp.h"
+#include "flexible_input_output.h"
 #include <emp-tool/emp-tool.h>
 using namespace emp;
 
@@ -28,7 +29,6 @@ class CMPC { public:
 	bool * ANDS_value;
 
 	block * labels;
-	bool * mask = nullptr;
 	BristolFormat * cf;
 	NetIOMP<nP> * io;
 	int num_ands = 0, num_in;
@@ -612,5 +612,68 @@ ret.get();
 		delete[] mask_input;
 	}
 
+	void online (FlexIn<nP> * input, FlexOut<nP> *output) {
+		bool * mask_input = new bool[cf->num_wire];
+		input->associate_cmpc(pool, value, mac, key, io, Delta);
+		input->input(mask_input);
+
+		if(party!= 1) {
+			for(int i = 0; i < num_in; ++i) {
+				block tmp = labels[i];
+				if(mask_input[i]) tmp = tmp ^ Delta;
+				io->send_data(1, &tmp, sizeof(block));
+			}
+			io->flush(1);
+		} else {
+			vector<future<void>> res;
+			for(int i = 2; i <= nP; ++i) {
+				int party2 = i;
+				res.push_back(pool->enqueue([this, party2]() {
+					io->recv_data(party2, eval_labels[party2], num_in*sizeof(block));
+				}));
+			}
+			joinNclean(res);
+
+			int ands = 0;
+			for(int i = 0; i < cf->num_gate; ++i) {
+				if (cf->gates[4*i+3] == XOR_GATE) {
+					for(int j = 2; j<= nP; ++j)
+						eval_labels[j][cf->gates[4*i+2]] = eval_labels[j][cf->gates[4*i]] ^ eval_labels[j][cf->gates[4*i+1]];
+					mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i]] != mask_input[cf->gates[4*i+1]];
+				} else if (cf->gates[4*i+3] == AND_GATE) {
+					int index = 2*mask_input[cf->gates[4*i]] + mask_input[cf->gates[4*i+1]];
+					block H[nP+1];
+					for(int j = 2; j <= nP; ++j)
+						eval_labels[j][cf->gates[4*i+2]] = GTM[ands][index][j];
+					mask_input[cf->gates[4*i+2]] = GTv[ands][index];
+					for(int j = 2; j <= nP; ++j) {
+						Hash(H, eval_labels[j][cf->gates[4*i]], eval_labels[j][cf->gates[4*i+1]], ands, index);
+						xorBlocks_arr(H, H, GT[ands][j][index], nP+1);
+						for(int k = 2; k <= nP; ++k)
+							eval_labels[k][cf->gates[4*i+2]] = H[k] ^ eval_labels[k][cf->gates[4*i+2]];
+
+						block t0 = GTK[ands][index][j] ^ Delta;
+
+						if(cmpBlock(&H[1], &GTK[ands][index][j], 1))
+							mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i+2]] != false;
+						else if(cmpBlock(&H[1], &t0, 1))
+							mask_input[cf->gates[4*i+2]] = mask_input[cf->gates[4*i+2]] != true;
+						else 	{cout <<ands <<"no match GT!"<<endl<<flush;
+						}
+					}
+					ands++;
+				} else {
+					mask_input[cf->gates[4*i+2]] = not mask_input[cf->gates[4*i]];
+					for(int j = 2; j <= nP; ++j)
+						eval_labels[j][cf->gates[4*i+2]] = eval_labels[j][cf->gates[4*i]];
+				}
+			}
+		}
+
+		output->associate_cmpc(pool, value, mac, key, eval_labels, labels, io, Delta);
+		output->output(mask_input, cf->num_wire - cf->n3);
+
+		delete[] mask_input;
+	}
 };
 #endif// CMPC_H__

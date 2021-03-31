@@ -11,17 +11,16 @@ include(${CMAKE_FOLDER}/cmake/enable_float.cmake)
 FIND_PACKAGE(emp-ot REQUIRED)
 INCLUDE_DIRECTORIES(${EMP-OT_INCLUDE_DIRS})
 
-install(DIRECTORY emp-agmpc DESTINATION include)
-install(DIRECTORY cmake/ DESTINATION cmake)
+install(FILES cmake/emp-agmpc-config.cmake DESTINATION cmake/)
+install(DIRECTORY emp-agmpc DESTINATION include/)
 
 # Test cases
 macro (add_test _name)
 	add_test_with_lib(${_name} ${EMP-OT_LIBRARIES})
 endmacro()
 
-add_test (test_mpc)
-add_test (test_mpc_individual)
-add_test (aes)
-add_test (sha1)
-add_test (sha256)
-add_test (triple)
+
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -ggdb -Wno-ignored-attributes")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -Wno-ignored-attributes")
+
+add_test(test_in_out)
