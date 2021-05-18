@@ -3,7 +3,7 @@
 using namespace std;
 using namespace emp;
 
-const string circuit_file_location = macro_xstr(EMP_CIRCUIT_PATH);
+const string circuit_file_location = macro_xstr(EMP_CIRCUIT_PATH) + string("bristol_format/");
 static char out3[] = "92b404e556588ced6c1acd4ebf053f6809f73a93";//bafbc2c87c33322603f38e06c3e0f79c1f1b1475";
 
 int main(int argc, char** argv) {
