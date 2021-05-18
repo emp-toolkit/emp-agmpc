@@ -16,29 +16,37 @@ class NetIOMP { public:
 		for(int i = 1; i <= nP; ++i)for(int j = 1; j <= nP; ++j)if(i < j){
 			if(i == party) {
 #ifdef LOCALHOST
+				usleep(1000);
 				ios[j] = new NetIO(IP[j], port+2*(i*nP+j), true);
 #else
+				usleep(1000);
 				ios[j] = new NetIO(IP[j], port+2*(i), true);
 #endif
 				ios[j]->set_nodelay();	
 
 #ifdef LOCALHOST
+				usleep(1000);
 				ios2[j] = new NetIO(nullptr, port+2*(i*nP+j)+1, true);
 #else
+				usleep(1000);
 				ios2[j] = new NetIO(nullptr, port+2*(j)+1, true);
 #endif
 				ios2[j]->set_nodelay();	
 			} else if(j == party) {
 #ifdef LOCALHOST
+				usleep(1000);
 				ios[i] = new NetIO(nullptr, port+2*(i*nP+j), true);
 #else
+				usleep(1000);
 				ios[i] = new NetIO(nullptr, port+2*(i), true);
 #endif
 				ios[i]->set_nodelay();	
 
 #ifdef LOCALHOST
+				usleep(1000);
 				ios2[i] = new NetIO(IP[i], port+2*(i*nP+j)+1, true);
 #else
+				usleep(1000);
 				ios2[i] = new NetIO(IP[i], port+2*(j)+1, true);
 #endif
 				ios2[i]->set_nodelay();	
