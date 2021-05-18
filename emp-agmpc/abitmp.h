@@ -127,7 +127,7 @@ class ABitMP { public:
 			tbs[i] = new bool[ssp];
 		}
 		
-		const int chk = 2;
+		const int chk = 1;
 		const int SIZE = 1024*2;
 		block (* tMAC)[4] = new block[SIZE/chk][4];
 		block (* tKEY)[4] = new block[SIZE/chk][4];
