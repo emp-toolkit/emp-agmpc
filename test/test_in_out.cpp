@@ -14,7 +14,9 @@ int party, port;
 void test_non_in_out(int party, int port) {
 	cout << "Standard in/out without using FlexIn/FlexOut" << endl;
 	cout << "compute: K = E_{010101...}(101010...); E_{010101...}(K)" << endl;
-	
+	PRG prg;
+	bool delta[128];
+	prg.random_bool(delta, 128);	
 	NetIOMP<nP> io(party, port);
 	NetIOMP<nP> io2(party, port+2*(nP+1)*(nP+1)+1);
 	
@@ -23,7 +25,7 @@ void test_non_in_out(int party, int port) {
 	
 	BristolFormat cf(filename.c_str());
 	
-	CMPC<nP>* mpc = new CMPC<nP>(ios, &pool, party, &cf);
+	CMPC<nP>* mpc = new CMPC<nP>(ios, &pool, party, &cf, delta);
 	ios[0]->flush();
 	ios[1]->flush();
 	
@@ -55,7 +57,7 @@ void test_non_in_out(int party, int port) {
 	
 	delete mpc;
 	
-	CMPC<nP>* mpc2 = new CMPC<nP>(ios, &pool, party, &cf);
+	CMPC<nP>* mpc2 = new CMPC<nP>(ios, &pool, party, &cf, delta);
 	ios[0]->flush();
 	ios[1]->flush();
 	
@@ -99,7 +101,10 @@ void test_non_in_out(int party, int port) {
 void test_in_out(int party, int port) {
 	cout << "FlexIn/FlexOut" << endl;
 	cout << "compute: K = E_{010101...}(101010...); E_{010101...}(K)" << endl;
-	
+	PRG prg;
+	bool delta[128];
+	prg.random_bool(delta, 128);	
+
 	NetIOMP<nP> io(party, port);
 	NetIOMP<nP> io2(party, port+2*(nP+1)*(nP+1)+1);
 	
@@ -108,7 +113,7 @@ void test_in_out(int party, int port) {
 	
 	BristolFormat cf(filename.c_str());
 	
-	CMPC<nP>* mpc = new CMPC<nP>(ios, &pool, party, &cf);
+	CMPC<nP>* mpc = new CMPC<nP>(ios, &pool, party, &cf, delta);
 	ios[0]->flush();
 	ios[1]->flush();
 	
@@ -165,7 +170,7 @@ void test_in_out(int party, int port) {
 	ios[0]->flush();
 	ios[1]->flush();
 	
-	CMPC<nP>* mpc2 = new CMPC<nP>(ios, &pool, party, &cf);
+	CMPC<nP>* mpc2 = new CMPC<nP>(ios, &pool, party, &cf, delta);
 	ios[0]->flush();
 	ios[1]->flush();
 	

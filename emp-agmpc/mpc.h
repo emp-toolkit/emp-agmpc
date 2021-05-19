@@ -42,7 +42,7 @@ class CMPC { public:
 	block (*GT)[nP+1][4][nP+1];
 	block * eval_labels[nP+1];
 	PRP prp;
-	CMPC(NetIOMP<nP> * io[2], ThreadPool * pool, int party, BristolFormat * cf, int ssp = 40) {
+	CMPC(NetIOMP<nP> * io[2], ThreadPool * pool, int party, BristolFormat * cf, bool * _delta = nullptr, int ssp = 40) {
 		this->party = party;
 		this->io = io[0];
 		this->cf = cf;
@@ -55,7 +55,7 @@ class CMPC { public:
 		}
 		num_in = cf->n1+cf->n2;
 		total_pre = num_in + num_ands + 3*ssp;
-		fpre = new FpreMP<nP>(io, pool, party, ssp);
+		fpre = new FpreMP<nP>(io, pool, party, _delta, ssp);
 		Delta = fpre->Delta;
 
 		if(party == 1) {
@@ -118,7 +118,7 @@ class CMPC { public:
 		prg.random_bool(preprocess_value, total_pre);
 		fpre->abit->compute(preprocess_mac, preprocess_key, preprocess_value, total_pre);
 		auto ret = fpre->abit->check(preprocess_mac, preprocess_key, preprocess_value, total_pre);
-ret.get();
+		ret.get();
 
 		for(int i = 1; i <= nP; ++i) {
 			memcpy(key[i], preprocess_key[i], num_in * sizeof(block));
