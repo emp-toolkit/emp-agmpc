@@ -191,7 +191,8 @@ class FpreMP { public:
 		check_zero(tKEYphi[party], length*bucket_size);
 #endif
 
-		PRG prgf(fix_key);
+		block prg_key = sampleRandom(io, &prg, pool, party);
+		PRG prgf(&prg_key);
 		char (*dgst)[Hash::DIGEST_SIZE] = new char[nP+1][Hash::DIGEST_SIZE];
 		bool * tmp = new bool[length*bucket_size];
 		for(int i = 0; i < ssp; ++i) {
