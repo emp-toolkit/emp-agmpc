@@ -5,7 +5,7 @@ CMakeFiles/
 Makefile
 bin/
 cmake_install.cmake
-
+*.DS_Store
 # Compiled Object files
 *.slo
 *.lo

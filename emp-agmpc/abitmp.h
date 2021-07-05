@@ -17,13 +17,18 @@ class ABitMP { public:
 	Hash hash;
 	int ssp;
 	block * pretable;
-	ABitMP(NetIOMP<nP>* io, ThreadPool * pool, int party, int ssp = 40) {
+	ABitMP(NetIOMP<nP>* io, ThreadPool * pool, int party, bool * _tmp = nullptr, int ssp = 40) {
 		this->ssp = ssp;
 		this->io = io;
 		this->pool = pool;
 		this->party = party;
-		bool * tmp = new bool[128];
-		prg.random_bool(tmp, 128);
+		bool tmp[128];
+		if(_tmp == nullptr) {
+			prg.random_bool(tmp, 128);
+		} else {
+			memcpy(tmp, _tmp, 128);
+		}
+
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j <= nP; ++j) if(i < j) {
 			if(i == party) {
 					abit1[j] = new IKNP<NetIO>(io->get(j, false));
@@ -62,7 +67,6 @@ class ABitMP { public:
 			Delta = abit1[2]->Delta;
 		else 
 			Delta = abit1[1]->Delta;
-		delete[] tmp;
 	}
 	~ABitMP() {
 		for(int i = 1; i <= nP; ++i) if( i!= party ) {
