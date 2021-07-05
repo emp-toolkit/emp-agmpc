@@ -480,7 +480,7 @@ class CMPC { public:
 		vector<future<bool>> res;
 		for(int i = 1; i <= nP; ++i) for(int j = 1; j<= nP; ++j) if( (i < j) and (i == party or j == party) ) {
 			int party2 = i + j - party;
-			res.push_back(pool->enqueue([this, start, end, mask_input, party2]() {
+			res.push_back(pool->enqueue([this, start, end, party2]() {
 				char dig[Hash::DIGEST_SIZE];
 				io->send_data(party2, value+start[party2], end[party2]-start[party2]);
 				emp::Hash::hash_once(dig, mac[party2]+start[party2], (end[party2]-start[party2])*sizeof(block));

@@ -3,16 +3,6 @@
 
 using namespace std;
 
-void print_block(block data) {
-	unsigned char str[16];
-	memcpy(str, &data, 16);
-	
-	for(int i = 0; i < 16; i++) {
-		printf("%02X", str[i]);
-	}
-	printf("\n");
-}
-
 template<int nP>
 struct AuthBitShare
 {
