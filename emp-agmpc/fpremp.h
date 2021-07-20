@@ -47,7 +47,7 @@ class FpreMP { public:
 		else return 5;
 	}
 	void compute(block * MAC[nP+1], block * KEY[nP+1], bool * r, int length) {
-		int bucket_size = get_bucket_size(length);
+		int64_t bucket_size = get_bucket_size(length);
 		block * tMAC[nP+1];
 		block * tKEY[nP+1];
 		block * tKEYphi[nP+1];
