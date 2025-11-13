@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8.11)
+cmake_minimum_required (VERSION 3.0...4.1.2)
 project (emp-agmpc)
 set(NAME "emp-agmpc")
 
